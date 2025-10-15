@@ -1,8 +1,6 @@
-import json
 import numpy as np
-from habitat import Env
+
 from habitat.core.agent import Agent
-from tqdm import trange
 import os
 import re
 import torch
@@ -11,85 +9,33 @@ import imageio
 from habitat.utils.visualizations import maps
 import random
 
-from navid.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
-from navid.conversation import conv_templates, SeparatorStyle
-from navid.model.builder import load_pretrained_model
-from navid.mm_utils import tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria
+from uninavid.mm_utils import get_model_name_from_path
+from uninavid.model.builder import load_pretrained_model
+from uninavid.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+from uninavid.conversation import conv_templates, SeparatorStyle
+from uninavid.mm_utils import tokenizer_image_token, KeywordsStoppingCriteria
+  
 
-
-
-
-
-def evaluate_agent(config, split_id, dataset, model_path, result_path) -> None:
- 
-    env = Env(config.TASK_CONFIG, dataset)
-
-    agent = NaVid_Agent(model_path, result_path)
-
-    num_episodes = len(env.episodes)
-    
-    EARLY_STOP_ROTATION = config.EVAL.EARLY_STOP_ROTATION
-    EARLY_STOP_STEPS = config.EVAL.EARLY_STOP_STEPS
-
-    
-    target_key = {"distance_to_goal", "success", "spl", "path_length", "oracle_success"}
-
-    count = 0
-    
-      
-    for _ in trange(num_episodes, desc=config.EVAL.IDENTIFICATION+"-{}".format(split_id)):
-        obs = env.reset()
-        iter_step = 0
-        agent.reset()
-
-         
-        continuse_rotation_count = 0
-        last_dtg = 999
-        while not env.episode_over:
-            
-            info = env.get_metrics()
-            
-            if info["distance_to_goal"] != last_dtg:
-                last_dtg = info["distance_to_goal"]
-                continuse_rotation_count=0
-            else :
-                continuse_rotation_count +=1 
-            
-            
-            action = agent.act(obs, info, env.current_episode.episode_id)
-            
-            if continuse_rotation_count > EARLY_STOP_ROTATION or iter_step>EARLY_STOP_STEPS:
-                action = {"action": 0}
-
-            
-            iter_step+=1
-            obs = env.step(action)
-            
-        info = env.get_metrics()
-        result_dict = dict()
-        result_dict = {k: info[k] for k in target_key if k in info}
-        result_dict["id"] = env.current_episode.episode_id
-        count+=1
-
-
-
-        with open(os.path.join(os.path.join(result_path, "log"),"stats_{}.json".format(env.current_episode.episode_id)), "w") as f:
-            json.dump(result_dict, f, indent=4)
-
-
-
-
-class NaVid_Agent(Agent):
-    def __init__(self, model_path, result_path, require_map=True):
+class UniNaVid_Agent(Agent):
+    def __init__(self, model_path, result_path, exp_save):
         
-        print("Initialize NaVid")
-        
+        print("Initialize UniNaVid")
+
         self.result_path = result_path
-        self.require_map = require_map
+        self.require_map = True if "video" in exp_save else False
+        self.require_data = True if "data" in exp_save else False
+
+        
         self.conv_mode = "vicuna_v1"
-        os.makedirs(self.result_path, exist_ok=True)
-        os.makedirs(os.path.join(self.result_path, "log"), exist_ok=True)
-        os.makedirs(os.path.join(self.result_path, "video"), exist_ok=True)
+        
+        if self.require_map or self.require_data:
+            os.makedirs(self.result_path, exist_ok=True)
+        
+        if self.require_data:
+            os.makedirs(os.path.join(self.result_path, "log"), exist_ok=True)
+        
+        if self.require_data:
+            os.makedirs(os.path.join(self.result_path, "video"), exist_ok=True)
 
 
         self.model_name = get_model_name_from_path(model_path)
@@ -99,37 +45,44 @@ class NaVid_Agent(Agent):
         print("Initialization Complete")
 
         
-        self.promt_template = "Imagine you are a robot programmed for navigation tasks. You have been given a video of historical observations and an image of the current observation <image>. Your assigned task is: '{}'. Analyze this series of images to decide your next move, which could involve turning left or right by a specific degree or moving forward a certain distance."
+        self.promt_template = "Imagine you are a robot programmed for navigation tasks. You have been given a video of historical observations and an image of the current observation <image>. Your assigned task is: '{}'. Analyze this series of images to determine your next four actions. The predicted action should be one of the following: forward, left, right, or stop."
 
-        self.history_rgb_tensor = None
+        # self.history_rgb_tensor = None
         
         self.rgb_list = []
         self.topdown_map_list = []
-
+        
         self.count_id = 0
         self.reset()
 
 
     def process_images(self, rgb_list):
         
-        start_img_index = 0
+        # start_img_index = 0
         
-        if self.history_rgb_tensor is not None:
-            start_img_index = self.history_rgb_tensor.shape[0]
+        # if self.history_rgb_tensor is not None:
+            # start_img_index = self.history_rgb_tensor.shape[0]
         
-        batch_image = np.asarray(rgb_list[start_img_index:])
+        batch_image = np.asarray(rgb_list)
+        self.model.get_model().new_frames = len(rgb_list)
         video = self.image_processor.preprocess(batch_image, return_tensors='pt')['pixel_values'].half().cuda()
 
-        if self.history_rgb_tensor is None:
-            self.history_rgb_tensor = video
-        else:
-            self.history_rgb_tensor = torch.cat((self.history_rgb_tensor, video), dim = 0)
-        
+        # if self.history_rgb_tensor is None:
+        #     self.history_rgb_tensor = video
+        # else:
+        #     self.history_rgb_tensor = torch.cat((self.history_rgb_tensor, video), dim = 0)
+        # rgb_list = []
 
-        return [self.history_rgb_tensor]
+        return [video]
 
 
     def predict_inference(self, prompt):
+        
+
+        
+        
+        
+        
         question = prompt.replace(DEFAULT_IMAGE_TOKEN, '').replace('\n', '')
         qs = prompt
 
@@ -180,7 +133,7 @@ class NaVid_Agent(Agent):
         stopping_criteria = KeywordsStoppingCriteria(keywords, self.tokenizer, input_ids)
 
         imgs = self.process_images(self.rgb_list)
-
+        self.rgb_list = []
 
         cur_prompt = question
         with torch.inference_mode():
@@ -297,6 +250,9 @@ class NaVid_Agent(Agent):
         self.count_stop = 0
         self.pending_action_list = []
 
+        self.model.config.run_type = "eval"
+        self.model.get_model().initialize_online_inference_nav_feat_cache()
+        self.model.get_model().new_frames = 0
         self.first_forward = False
         
 
@@ -323,6 +279,8 @@ class NaVid_Agent(Agent):
 
 
         navigation_qs = self.promt_template.format(observations["instruction"]["text"])
+        
+  
         navigation = self.predict_inference(navigation_qs)
         
         if self.require_map:
@@ -330,28 +288,22 @@ class NaVid_Agent(Agent):
             self.topdown_map_list.append(img)
 
 
-        action_index, num = self.extract_result(navigation[:-1])
+        action_list = navigation.split(" ")
 
-
-
-
-        if action_index == 0:
-            self.pending_action_list.append(0)
-        elif action_index == 1:
-            for _ in range(min(3, int(num/25))):
+        for action in action_list: 
+            if action == "stop":
+                self.pending_action_list.append(0)
+            elif action == "forward":
                 self.pending_action_list.append(1)
-
-        elif action_index == 2:
-            for _ in range(min(3,int(num/30))):
+            elif action == "left":
                 self.pending_action_list.append(2)
-
-        elif action_index == 3:
-            for _ in range(min(3,int(num/30))):
+            elif action == "right":
                 self.pending_action_list.append(3)
-        
-        if action_index is None or len(self.pending_action_list)==0:
-            self.pending_action_list.append(random.randint(1, 3))
-            # Primarily unused, intended to complete the pipeline logic.
+            else:
+                raise ValueError("wrong actions!, please check the code and data")
+                                    
+            if len(self.pending_action_list) == 2: # to accelrate the inference
+                break
 
         
 

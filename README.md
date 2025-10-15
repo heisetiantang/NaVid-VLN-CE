@@ -1,13 +1,21 @@
 
-# NaVid 
+# NaVid and Uni-NaVid (VLN-CE Evaluation)
 
-**Video-Language in, Actions out! No odometry, Dpeth, or Map required!** This project contains the evaluation code of our RSS 2024 paper:
+**Video-Language in, Actions out! No odometry, Dpeth, or Map required!** This project contains the evaluation code of our RSS 2024 paper NaVid and RSS 2025 paper Uni-NaVid:
 
  **NaVid: Video-based VLM Plans the Next Step for Vision-and-Language Navigation**.
 
 Contributors: [Jiazhao Zhang](https://jzhzhang.github.io/), Kunyu Wang, [Rongtao Xu](https://scholar.google.com.hk/citations?user=_IUq7ooAAAAJ), [Gengze Zhou](https://gengzezhou.github.io/), [Yicong Hong](https://yiconghong.me/), Xiaomeng Fang, [Qi Wu](http://qi-wu.me/), [Zhizheng Zhang](https://scholar.google.com/citations?user=X7M0I8kAAAAJ&hl=en), [He Wang](https://hughw19.github.io/)<br>
 
 [[Paper & Appendices](https://arxiv.org/pdf/2402.15852)] [[Projece Page](https://pku-epic.github.io/NaVid/)]
+
+
+🔥 **Uni-NaVid: A Video-based Vision-Language-Action Model for Unifying Embodied Navigation Tasks.** 
+
+
+Contributors: [Jiazhao Zhang](https://jzhzhang.github.io/), Kunyu Wang, [Shaoan Wang](https://wsakobe.github.io/), Minghan Li, [Haoran Liu](https://yiconghong.me/), [Songlin Wei](https://songlin.github.io/), [Zhongyuan Wang](https://www.wangzhongyuan.com/), [Zhizheng Zhang](https://scholar.google.com/citations?user=X7M0I8kAAAAJ&hl=en), [He Wang](https://hughw19.github.io/)<br>
+
+[[Paper & Appendices](https://arxiv.org/pdf/2412.06224)] [[Projece Page](https://pku-epic.github.io/Uni-NaVid/)][[🔥Finetuning Code](https://github.com/jzhzhang/Uni-NaVid)]
 
 
 
@@ -56,6 +64,13 @@ cd NaVid-VLN-CE
 pip install -r requirements.txt
 ```
 
+🔥 *New!* If you want to evaluate the performance of [Uni-NaVid](https://pku-epic.github.io/Uni-NaVid/), you can clone the Uni-NaVid repository anywhere you want and then link the `uninavid` model files.
+
+```
+git clone git@github.com:jzhzhang/Uni-NaVid.git # download in anyplace you prefer
+ln -s  Uni-NaVid/uninavid uninavid # link architecute files in this repo
+```
+
 ### 2. Vision-and-Language Data
 
 Follow the instructions in the [VLN-CE Data Section](https://github.com/jacobkrantz/VLN-CE?tab=readme-ov-file#data) to set up the scene dataset and episodes dataset. (If the RxR episodes cannot be accessed, you can download them [here](https://1drv.ms/u/c/aa19f644cf9d8afb/ETQ8Co-hGLFMjwd5HckKsvABjWvZ3cbPsWwdzbhmQDoL1g?e=WtO8Lm).) After completing the data preparation, update the data location in [R2R config file](VLN_CE/habitat_extensions/config/vlnce_task_navid_r2r.yaml) and [RxR config file](VLN_CE/habitat_extensions/config/vlnce_task_navid_rxr.yaml). An example configuration is shown below, please modify the task files to align your data configuration:
@@ -71,14 +86,17 @@ DATASET:
 ```
 
 ### 3. Pretrained Weights
-First download the pretriend weights for vision encoder [EVA-ViT-G](https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/BLIP2/eva_vit_g.pth). Then, download the [finetuned NaVid model](https://huggingface.co/Jzzhang/NaVid/tree/main). The model has been trained on extensive samples from the `training splits` of the VLN-CE R2R and RxR datasets, following the training strategy of [Uni-NaVid](https://arxiv.org/pdf/2412.06224).
+First download the pretriend weights for vision encoder [EVA-ViT-G](https://github.com/dvlab-research/LLaMA-VID/tree/main). Then, download the [finetuned NaVid model](https://huggingface.co/Jzzhang/NaVid/tree/main). The model has been trained on extensive samples from the `training splits` of the VLN-CE R2R and RxR datasets, following the training strategy of [Uni-NaVid](https://arxiv.org/pdf/2412.06224).
 
+We also provide weights of Uni-NaVid on trianing split, please download the [finetuned Uni-NaVid model](https://huggingface.co/Jzzhang/Uni-NaVid/tree/main/uninavid-7b-full-224-video-fps-1-grid-2).
 
 | Evaluation Benchmark |  TL  |  NE  |  OS  |  SR  |  SPL |
 |----------------------|:----:|:----:|:----:|:----:|:----:|
-| VLN-CE R2R Val.      | 10.7 | 5.65 | 49.2 | 41.9 | 36.5 |
-| [VLN-CE R2R Test](https://eval.ai/web/challenges/challenge-page/719/leaderboard/1966)      | 11.3 | 5.39 |  52  |  45  |  39  |
-| VLN-CE RxR Val.      | 15.4 | 5.72 | 55.6 | 45.7 | 38.2 |
+| NaVid VLN-CE R2R Val.      | 10.7 | 5.65 | 49.2 | 41.9 | 36.5 |
+| [NaVid VLN-CE R2R Test](https://eval.ai/web/challenges/challenge-page/719/leaderboard/1966)      | 11.3 | 5.39 |  52  |  45  |  39  |
+| NaVid VLN-CE RxR Val.      | 15.4 | 5.72 | 55.6 | 45.7 | 38.2 |
+| Uni-NaVid VLN-CE R2R Val.      | 9.22 | 4.96 | 57.4 | 51.8 | 47.7 |
+| Uni-NaVid VLN-CE RxR Val.      | 18.4 | 5.67 | 66.4 | 56.1 | 44.5 |
 
 
 ### 4.  Structure
@@ -88,14 +106,16 @@ navid_ws
 ├── habitat-lab
 ├── NaVid-VLN-CE
 │   ├── navid
+│   ├── uninavid
 │   ├── VLN_CE
 │   ├── model_zoo
 │   │   ├── eva_vit_g.pth
 │   │   ├── <navid_weights>
+│   │   └── <uninavid_weights>
 ```
 
 
-## Evaluation
+## Evaluation Preparation
 
 To evaluate the model on multiple GPUs, use the provided evaluation `eval_navid_vlnce.sh` script. Each GPU will handle one split of all episodes. Before running the script, modify the environment variables as follows:
 
@@ -104,12 +124,23 @@ CHUNKS=8 # GPU numbers
 MODEL_PATH="" # model wieght
 CONFIG_PATH="" # task configuration configure, see script for an example
 SAVE_PATH="" #  results
+MODEL_NAME="" # uninavid or navid
+EXP_SAVE="video-data" # save both video and data 
 ```
 
+### NaVid Evaluation
 Our evaluation code supports the reuse of historical visual tokens, enabling the completion of 1839 episodes (R2R) within 2.5 hours (using 8 A100 GPUs). Run the script with:
 ```
-bash eval_navid_vlnce.sh
+bash eval_navid_vlnce.sh # SET MODEL_NAME="navid"
 ```
+
+### 🔥 Uni-NaVid Evaluation
+Uni-NaVid leverages online token merging (`run_type=eval`), achieving an inference speed of approximately 5 Hz on a single A100 GPU. By employing more advanced techniques, such as quantization, the speed can be further enhanced.
+```
+bash eval_uninavid_vlnce.sh # SET MODEL_NAME="uninavid"
+```
+
+### Monitor Evaluation
 
 Results will be saved in the specified `SAVE_PATH`, which will include a `log` directory and a `video` directory. To monitor the results during the evaluation process, run:
 
@@ -131,6 +162,14 @@ If you find this work useful for your research, please consider citing:
         journal={Robotics: Science and Systems},
         year={2024}
       }
+
+@article{zhang2024uni,
+    title={Uni-NaVid: A Video-based Vision-Language-Action Model for Unifying Embodied Navigation Tasks},
+    author={Zhang, Jiazhao and Wang, Kunyu and Wang, Shaoan and Li, Minghan and Liu, Haoran and Wei, Songlin and Wang, Zhongyuan and Zhang, Zhizheng and Wang, He},
+    journal={Robotics: Science and Systems},
+    year={2025}
+}
+
 ```
 
 ## Acknowledgments
