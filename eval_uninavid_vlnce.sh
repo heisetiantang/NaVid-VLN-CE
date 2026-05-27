@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CHUNKS=8
+CHUNKS=2
 
 ################ NaVid ################
 
@@ -20,18 +20,18 @@ CHUNKS=8
 
 ################ Uni-NaVid ################
 
-MODEL_PATH="model_zoo/llama-vid-7b-full-224-video-fps-1-grid-2-panda-encoder-2025-10-12-all-data"
+MODEL_PATH="model_zoo/uninavid-7b-full-224-video-fps-1-grid-2"
 MODEL_NAME="uni-navid" # uni-navid or navid
 EXP_SAVE="video-data" # use "data" to accelerate evaluation
 
 #R2R
-# CONFIG_PATH="VLN_CE/vlnce_baselines/config/r2r_baselines/uninavid_r2r.yaml"
-# SAVE_PATH="tmp/results_uninavid-7b-full-224-video-fps-1-grid-2-r2r" 
+CONFIG_PATH="VLN_CE/vlnce_baselines/config/r2r_baselines/uninavid_r2r.yaml"
+SAVE_PATH="tmp/results_uninavid_r2r_val_unseen" 
 
 
 #RxR
-CONFIG_PATH="VLN_CE/vlnce_baselines/config/rxr_baselines/uninavid_rxr.yaml"
-SAVE_PATH="tmp/results_uninavid-7b-full-224-video-fps-1-grid-2-rxr" 
+# CONFIG_PATH="VLN_CE/vlnce_baselines/config/rxr_baselines/uninavid_rxr.yaml"
+# SAVE_PATH="tmp/results_uninavid-7b-full-224-video-fps-1-grid-2-rxr" 
 
 
 
